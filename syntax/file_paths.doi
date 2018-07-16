@@ -1,0 +1,12 @@
+
+/* Stata "include" file containing the global path macros */
+
+global path1 "e:\working\" 
+global path2 "e:\do_files\" 
+global path3 "e:\data_raw\"
+global path4 "e:\data_clean\"
+global path5 "e:\logs\"
+global path6 "e:\codebooks\"
+global path7 "e:\temp\"
+
+pwd
