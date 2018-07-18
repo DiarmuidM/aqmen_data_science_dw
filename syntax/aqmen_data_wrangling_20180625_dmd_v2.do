@@ -2,10 +2,6 @@
 
 /**
 
-GENERAL COURSE PREP TASKS:
-	- Add intermediate material to the end as well.
-	- Add a quick section on missing values.
-	- Create exercise do files.
 
 *******************************************************************************
 
@@ -1095,13 +1091,64 @@ with unknown data
 
 inspect ethnic
 
+
+/**
+
+missing values are a perennial feature of data wrangling
+
+often it is sufficient to identify observations with missing values for certain variables
+and exlcude them from analyses
+
+we can do this by dropping the observations from the dataset, or use an 'if statement' to
+exclude them when executing a specific command
+
+**/
+
+** ssc install mdesc
+/**
+	The above command installs a user-written package that describes variables with missing values
+**/
+mdesc
+
+codebook hoh_inc // numeric variable that measures household income
+inspect hoh_inc
+/**
+
+	QUESTION: are negative and zero values valid for this variable?
+
+**/
+sum hoh_inc , detail // this command automatically excludes missing values
+
+tab marstat if hoh_inc==.
+tab marstat if hoh_inc!=.
+
+drop if hoh_inc==. // '.' represents missing values for numeric variables
+
+
+use $path3\adrc_s_training_data4.dta, clear // let's load in the dataset again, in case we made a mistake dropping observations
+
 tab ethnic, missing
 
 * change missing value (.) to a number (999)
 
 mvencode ethnic, mv(999)
+tab ethnic, missing 
+/** 
 
-tab ethnic, missing
+	'999' is often used as a value to identify missing values in social science datasets
+	
+	this is advised as it distinguishes between different reasons for missing values
+	e.g. a survey question wasn't relevant to a particular individual and thus should not
+	have a value
+	
+**/	
+
+codebook workhours
+/**
+
+	QUESTION: why are some many observations missing values for this variable?
+
+**/
 
 * change missing values (999) to missing (.)
 
@@ -1116,6 +1163,17 @@ tab workmode, missing
 mvdecode workmode, mv(-9, 7)
 
 tab workmode, missing
+
+/**
+
+	there are other ways of dealing with missing values, one of the most common
+	of which is imputing values e.g. replacing missing values with the mean or median value,
+	or some other algorithmic approach
+	
+	this is an intermediate topic and readers are encouraged to consult the folllowing
+	guidance: https://stats.idre.ucla.edu/stata/seminars/mi_in_stata_pt1_new/
+
+**/
 
 
 ********************************************************************************
@@ -1500,13 +1558,6 @@ of things.
 *                   Producing Statistical Outputs
 *
 ********************************************************************************
-/*
-	Change this section to focus on basic analyses.
-	
-	Use charity data and take people through the different data prep steps before each analysis.
-
-	Plenty of user tasks.
-*/
 
 
 /**
@@ -1598,8 +1649,7 @@ a picture paints a thousand words!
 in Professor Gayle's experience, with the exception of weighting, 
 graphing data is one of the most troublesome aspects of data analysis
 
-why not sign up for the next two day graphs and graphical representation 
-workshop
+we have a two-day graphing course if you are interested...
 
 **/
 
@@ -1620,25 +1670,59 @@ codebook, compact
 
 * a table of summary statistics*
 
+********************************************************************************
+*
+*                    Installing Packages
+*
+********************************************************************************
+
 /**
 
-you might need to install estout first
+Installing Packages in Stata
+
+A benefit of Stata is that new commands and functions are developed which can 
+be incorporated into your current version of Stata. It is possible to acquire 
+and manage downloads from the internet using the command net. 
+The findit command can be used to search the Stata site and other sites for 
+information. For example imagine that you heard about a program to draw graphs 
+using quasi-variance estimates, then using the syntax findit qvgraph would lead 
+you to the module written by Aspen Chen of the University of Connecticut. 
+
+Many new packages are deposited at the Statistical Software Components (SSC) 
+archive which is sometime called the Boston College Archive and is administered 
+by http://repec.org . 
+
+The SSC archive has become the premier Stata download site for user-written 
+software and also archives proceedings of Stata Users Group meetings and 
+conferences. Programmes can be downloaded from the SSC archive using the syntax
+ssc install followed by the new programme’s name. 
+
+Readers who do not have administrative access to Stata 
+(for example when working on their university network), may first require 
+permission to download packages. 
+
+An alternative approach may be to set up an area locally where you have write 
+access (e.g. c:\temp ) and then use the following Stata syntax
+
+	global path10 "c:\temp\"
+	capture mkdir $path10\stata
+	capture mkdir $path10\stata\ado
+	adopath +  $path10\stata\ado
+	net set ado $path10\stata\ado
+
+You can test this by installing a package from SSC for example the estout 
+package
 
 ssc install estout
 
-on an Edinburgh University teaching machine you might have to run the following
-line of code first
+Help on this new package should then be available
 
-sysdir set PLUS "c:\Workspace\stata\plus"
+		help estout
 
-take a look at the section above on installing packages (above)
-
-the package you need is 
-
-ssc install estout
 
 **/
 
+ssc install estout
 
 estpost summarize mpg trunk turn
 
@@ -1686,7 +1770,7 @@ outputs using Stata
 
 exporting results - making regression tables from stored estimates
 
-you might have to run "ssc install estout" on your own machine at home if it is
+you might have to run "ssc install estout" on your own machine if it is
 not already installed.
 
 **/
@@ -1694,7 +1778,7 @@ not already installed.
 
 webuse womenwk, clear
 
-tab educ, gen(ed)
+tab education, gen(ed)
 rename ed1 no_ed
 rename ed2 low_education
 rename ed3 medium_education
@@ -1704,9 +1788,23 @@ label variable low_education "low education"
 label variable medium_education "medium education"
 label variable high_education"high education"
 
+sum wage, detail
+histogram wage, ///
+	freq normal title("Distribution of hourly wage") ytitle("Frequency") xtitle("£") scheme(s1mono) 
 
 regress wage low_education medium_education high_education age
 estimates store reg1
+/**
+
+	regression is a statistical technique for estimating the association between an
+	outcome and a suite of explanatory variables
+	
+	it is a powerful and flexible approach for predicting the values of an outcome
+	
+	in the above example we are estimating the value of an individual's wage using four
+	explanatory variables, and saving the results in an object called "reg1"
+
+**/
 
 esttab reg1 using $path7\regress1.rtf,		///
 	cells(b(star fmt(%9.3f)) se(par)) 					///
@@ -1720,47 +1818,34 @@ esttab reg1 using $path7\regress1.rtf,		///
 
 /**
 
-an annoying supervisor, or referee, suggests that there might be
-a sample selection bias!
-
-to the best of my knowledge it is not possible to fit a Heckman model in SPSS 
-
-within seconds you can rerun the analyses and get a publication/thesis
-ready output
+	QUESTION: interpret the results of the linear regression analysis
+	
+	if it looks 'all greek' to you (statistics joke, sorry), then please ask one of the tutors
+	to provide a thorough explanation
 
 **/
 
 
-* generate a variable to identify selection
+/**
 
-generate wageseen = (wage < .)
+	TASK: load in the 'adrc_s_training_data4.dta' dataset and construct a regression analysis
+	using any variables you like. start by selecting a numeric variable to act as an outcome
+	and then choose 4+ variables that you think might explain variation in the values of the outcome
 
-
-* run this section together *
-
-#delimit ;
-
-heckman wage low_education medium_education high_education age,
-   select(wageseen = married children 
-   low_education medium_education high_education age) ;
-   
-#delimit cr
-
-estimates store heck1
-
-
-esttab reg1 heck1 using $path7\heckman1.rtf,		///
-	cells(b(star fmt(%9.3f)) se(par)) 					///
-	stats(r2 r2_a N, fmt(%9.3f %9.3f) labels(R-Squared AdjR-Squared n)) /// 
-	starlevels(* .10 ** .05 *** .01) stardetach 	///
-	label mtitles("Regression Model" "Heckman Model") 		///
-	nogaps replace
-
-* the output is written to path7\regress1.rtf click on the text in the output *
+**/
 
 
 ********************************************************************************
+
+/**
+
 END OF PRACTICAL FOUR
+
+...though feel free to continue a little bit further if you are feel you are on top
+of things.
+
+**/
+
 ********************************************************************************
 
 ********************************************************************************
@@ -1795,7 +1880,7 @@ regress mpg `varlist'
 
 The program reg1 will create a local macro called varlist.
 
-The prgram reg1 will also use that macro.
+The program reg1 will also use that macro.
 
 **/
 
@@ -1857,10 +1942,10 @@ clear
 * here is a simple loop that counts *
 
 forvalues x = 1/5 {
-display "`x' + 1 = " 
-display "result"
-display `x' + 1
-display " "
+	display "`x' + 1 = " 
+	display "result"
+	display `x' + 1
+	display " "
 }
 
 ********************************************************************************
@@ -1874,7 +1959,7 @@ codebook, compact
 
 foreach varname of varlist price mpg headroom trunk {
 
-ci `varname' 
+	ci `varname' 
 
 }
 
@@ -1917,8 +2002,8 @@ clear
 
 * get an excel spreadsheet from the web *
 
-insheet using "http://www.ats.ucla.edu/stat/data/hdp.csv", comma
-
+insheet using "http://stats.idre.ucla.edu/stat/data/hdp.csv", comma
+codebook
 numlabel _all, add
 
 browse
@@ -1935,12 +2020,17 @@ proportion familyhx smokinghx sex cancerstage school
 
 * use a foreach loop to encode all the variables at once *
 
-foreach i of varlist familyhx smokinghx sex cancerstage school {
-encode `i', gen(`i'2)
-drop `i'
-rename `i'2 `i'
+foreach var of varlist familyhx smokinghx sex cancerstage school {
+encode `var', gen(`var'2)
+drop `var'
+rename `var'2 `var'
 }
 
+/**
+
+	TASK: add comments to the end of each line in the loop detailing what is happening at each stage
+
+**/
 
 
 browse
@@ -1968,9 +2058,13 @@ set obs 100
 gen id=_n
 
 forv i=1/10{
- gen waveavar`i'=runiform()
+ gen waveavar`i'=runiform() 
 }
+/**
 
+	creates a new variable and assigns it a random value between 0 and 1 for each observation
+
+**/
 summarize
 
 * remove the wave a suffix *
@@ -2040,7 +2134,14 @@ Calling a .do file
 
 *******************************************************************************
 
+/**
+
 END OF PRACTICAL FIVE
+
+...if you finish ahead of time then please use this opportunity to revisit
+troublesome topics/commands and ask the tutors plenty of questions
+
+**/
 
 *******************************************************************************
 
@@ -2268,7 +2369,7 @@ revising earlier material or tackling the exercises in depth.
 
 * standardizing a variable *
 
-use "http://www.ats.ucla.edu/stat/stata/notes/hsb2", clear // [UPDATE THIS LINK]!!!
+use "http://stats.idre.ucla.edu//stat/stata/notes/hsb2", clear
 
 summarize math science socst
 
@@ -2356,19 +2457,38 @@ a data access agreement.
 
 Congratulations!
 
-Good luck with future data analyses using Stata.
+You've gotten through a pile of work and are more than
+capable of enabling raw data for analysis in a thorough, efficient
+and accurate manner.
 
-UPDATE THIS SECTION
+REMEMBER: the problems of big data are, essentially, the problems of small data,
+and proficiency in the latter is an important precursor to the use of more
+sophisticated/challenging datasets.
+
+Hopefully this course has gone some way to convincing you of the value of adopting
+social science approaches and tools for data science work; if not then let us know how we can improve;
+if so then please engage with us on further topics and tools e.g. Introduction to R/Python,
+Longitudinal Data Analysis, Reproducible Data Analytics.
+
+Good luck with future data wrangling and analyses using Stata.
 
 
-© Vernon Gayle, University of Edinburgh.
+
+*******************************************************************************************************
+
+
+
+
+
+© Vernon Gayle, Diarmuid McDonnell - University of Edinburgh.
 
 This file has been produced for AQMeN and the ADRC-S by 
 Professor Vernon Gayle with assistance from Dr Roxanne
-Connelly and Dr Chris Playford.
+Connelly and Dr Chris Playford, and updated by Dr Diarmuid McDonnell
+and Professor John MacInnes
 
 Any material in this file must not be reproduced, 
-published or used for teaching without permission from Professor Vernon Gayle. 
+published or used for teaching without permission from Professor Vernon Gayle or Dr Diarmuid McDonnell. 
 
 Many of the ideas and examples presented in this document draw heavily on
 previous work (see especially www.longitudinal.stir.ac.uk). 
@@ -2377,9 +2497,10 @@ earlier workshops.
 
 Over the last decade much of this material has been developed in close 
 collaboration with Professor Paul Lambert, Stirling University. 
-However, Professor Gayle is responsible for any errors in this file.
+However, Professor Gayle and Dr McDonnell are responsible for any errors in this file.
 
 Professor Vernon Gayle (vernon.gayle@ed.ac.uk) 
+Dr Diarmuid McDonnell (diarmuid.mcdonnell@ed.ac.uk)
 
 
 ********************************************************************************
