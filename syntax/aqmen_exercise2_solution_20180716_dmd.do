@@ -45,7 +45,7 @@ di "$path8"
 
 /* Base dataset - extract_charity */
 
-import delimited using $path2\extract_charity_sample.csv, varnames(1) clear
+import delimited using $path3\extract_charity_sample.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -106,7 +106,7 @@ sav $path1\ew_charityregister_v1.dta, replace
 	
 /* extract_main_charity dataset */
 
-import delimited using $path2\extract_main_charity.csv, varnames(1) clear
+import delimited using $path3\extract_main_charity.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -164,7 +164,7 @@ sav $path1\ew_maincharity_v1.dta, replace
 	
 /* extract_registration dataset */	
 
-import delimited using $path2\extract_registration.csv, varnames(1) clear
+import delimited using $path3\extract_registration.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -223,7 +223,7 @@ sav $path1\ew_rem_v1.dta, replace
 
 /* extract_remove_ref dataset */	
 
-import delimited using $path2\extract_remove_ref.csv, varnames(1) clear
+import delimited using $path3\extract_remove_ref.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -377,7 +377,7 @@ sav $path1\ew_trustees_v1.dta, replace
 
 compress
 		
-sav $path3\ew_charityregister_analysis.dta, replace
+sav $path4\ew_charityregister_analysis.dta, replace
 
 ***************************************************************************************************
 
@@ -385,7 +385,7 @@ sav $path3\ew_charityregister_analysis.dta, replace
 
 /* Data Analysis */
 
-use $path3\ew_charityregister_analysis.dta, clear
+use $path4\ew_charityregister_analysis.dta, clear
 count
 desc, f
 codebook, compact
