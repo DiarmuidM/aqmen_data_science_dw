@@ -216,6 +216,7 @@ label data "One observation per main charity"
 	
 	label variable regy "Year charity was registered"
 	label variable remy "Year charity was de-registered"
+	label variable remcode "Deregistration reason code"
 
 	
 sav $path1\ew_rem_v1.dta, replace
@@ -243,7 +244,7 @@ sav $path1\ew_rem_ref_v1.dta, replace
 
 /* extract_trustee dataset */
 
-import delimited using $path2\extract_trustee.csv, varnames(1) clear
+import delimited using $path3\extract_trustee.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -252,9 +253,9 @@ codebook *, compact
 	/* Missing or duplicate values */
 	
 	capture ssc install mdesc
+	ssc install missings
 	mdesc
-	missings dropvars, force
-	tab v3
+	missings dropvars, force // Drop variables with 100% missing values
 	drop v3
 	
 	duplicates report
@@ -274,7 +275,7 @@ codebook *, compact
 	sort regno
 	list in 1/500
 	duplicates report regno
-	duplicates drop regno, force
+	duplicates drop regno, force // Only need one observation per charity
 
 sav $path1\ew_trustees_v1.dta, replace
 
@@ -330,7 +331,7 @@ sav $path1\ew_trustees_v1.dta, replace
 	
 	use $path1\ew_charityregister_v1.dta, clear
 	
-	merge 1:1 regno using $path1\ew_rem_v1.dta, keep(match master using) // Registration information
+	merge 1:1 regno using $path1\ew_rem.dta, keep(match master using) // Registration information
 	tab _merge
 	rename _merge rem_merge
 	
@@ -339,17 +340,22 @@ sav $path1\ew_trustees_v1.dta, replace
 	rename _merge trustee_merge
 	drop if trustee_merge==2
 	
+	merge 1:1 regno using $path1\ew_maincharity_v1.dta, keep(match master using) // Income information
+	tab _merge
+	rename _merge inc_merge
+	drop if inc_merge==2
+
 	
 /* Final data management */
 
 	/* Charity age variable */
 	
 	capture drop charityage
-	gen charityage = year - regy if charitystatus==1
-	replace charityage = remy - regy if charitystatus==2
+	gen charityage = 2018 - regy if charitystatus==1
+	replace charityage = 2018 - regy if charitystatus==2
 	
-	list regno regy remy year charityage in 1/500
-	list regno regy remy year charityage if charitystatus==1 & year!=.
+	list regno regy remy charityage in 1/500
+	list regno regy remy charityage if charitystatus==1
 	
 	/* Create dependent variables */
 	
@@ -376,6 +382,10 @@ sav $path1\ew_trustees_v1.dta, replace
 	label variable depvar "Indicates whether a charity has been de-registered and for what reason"
 
 compress
+
+/* label the remaining variables */
+
+// INSERT SYNTAX
 		
 sav $path4\ew_charityregister_analysis.dta, replace
 
@@ -391,41 +401,56 @@ desc, f
 codebook, compact
 notes
 
-		// Descriptive statistics
+	/* Descriptive statistics */
 	
-	tab1 charitysize aootype
-	tab depvar
-	tab remy depvar if remy>=2007 // Produce a table
+	tab1 charitystatus inc_cat alt_inc_cat dereg depvar // Categorical variables
+	sum regy remy trustees income charityage, detail // Numeric variables
+	
+	estpost tab remy depvar if remy>=2007 // Distribution of dereg year and reason since 2007
+	esttab using "$path7\table2.rtf", cell("b(f(0))" "rowpct(f(0))") ///
+		nonumbers mtitles(" Reason")  ///  
+		collabels(none) ///
+		title(Table 1: Deregistration reason by year) addnotes(Notes: ew_charityregister_analysis.dta) ///
+		noobs unstack replace
 	/*
 		What's going in 2009 with Other Dereg?
 	*/	
 	
 		tab removed_reason if remy==2007
 		tab removed_reason if remy==2008
-		tab removed_reason if remy==2009 // Accounted for by the large spike in voluntary de-registrations
+		tab removed_reason if remy==2009 // Accounted for by the large spike in voluntary removals
 	
-	local fdate = "24jul2018" // Create a macro to capture today's date (useful for naming files)
-
-	graph bar , over(depvar) over(charitysize) stack asyvar percent ylabel(, nogrid labsize(small))
-	graph bar , over(depvar) over(aootype) stack asyvar percent ylabel(, nogrid labsize(small))
+	/* explore some other bivariate correlations in the data e.g. charityage and depvar */
 	
+	table depvar, c(mean charityage sd charityage min charityage max charityage)
+	table depvar, c(mean income sd income min income max income) 
+	tab charitystatus if income!=. // We only have income data for registered charities, but there are still some data errors
+	tab charitystatus if income==.
+	
+	
+	local fdate = "24jul2018" // Create a macro to capture today's date (useful for naming files)	
 	tab remy depvar if remy>=2007
 	local numobs:di %6.0fc r(N)
 	
-	tab depvar if depvar>0 & remy>=2007 // 50% is the average number of vol removals in a given year.
+	tab depvar if depvar>0 & remy>=2007 // 70% is the average number of vol removals in a given year.
 		
 	graph bar if remy>=2007 & depvar!=0, over(depvar) over(remy) stack asyvar percent ///
 		bar(1, color(dknavy )) bar(2, color(erose)) ///
 		ylabel(, nogrid labsize(small)) ///
 		ytitle("% of charities", size(medsmall)) ///
-		yline(50, lpatt(dash) lcolor(gs8)) ///
+		yline(70, lpatt(dash) lcolor(gs8)) ///
 		title("Charity Removal Reasons - UK")  ///
 		subtitle("by deregistration year")  ///
 		note("Source: Charity Commission for England & Wales (22/05/2018);  n=`numobs'. Produced: $S_DATE.", size(vsmall) span) ///
 		scheme(s1color)
 
-	graph export $path6\ew_removedreason_`fdate'.png, replace width(4096)
-
+	graph export $path8\ew_removedreason_`fdate'.png, replace width(4096)
+	
+	
+	
+	/* Statistical modelling */
+	
+	
 
 
 	

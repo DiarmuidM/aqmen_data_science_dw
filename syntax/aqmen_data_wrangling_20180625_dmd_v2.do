@@ -418,6 +418,10 @@ global path7 "H:\temp\"
 
 * the location of a temporary folder where you can save intermediate files *
 
+global path8 "H:\figures\"
+
+* the location of a folder where you can save figures and graphs *
+
 /**
 
 often it is easier to define all of the path macros in a separate file, known as an "include" file: file_paths.doi.
@@ -1830,7 +1834,7 @@ esttab reg1 using $path7\regress1.rtf,		///
 
 	TASK: load in the 'adrc_s_training_data4.dta' dataset and construct a regression analysis
 	using any variables you like. start by selecting a numeric variable to act as an outcome
-	and then choose 4+ variables that you think might explain variation in the values of the outcome
+	and then choose 4+ variables - categorical or numeric - that you think might explain variation in the values of the outcome
 
 **/
 
@@ -1959,10 +1963,18 @@ codebook, compact
 
 foreach varname of varlist price mpg headroom trunk {
 
-	ci `varname' 
+	ci means `varname' 
 
 }
 
+/**
+
+the confidence interval is a measure of uncertainty around our estimate. 
+it tells the range in which we would expect the true value to lie in 95 out of 100 cases
+
+(it's a bit more nuanced than that; speak to John or Diarmuid if you would like to learn more)
+
+**/
 *
 
 ********************************************************************************
@@ -1986,7 +1998,11 @@ foreach var of varlist inc1-inc12 {
   generate tax`var' = `var' * .10
 }
 
-*
+/**
+
+Task: describe what the above loop is doing.
+
+**/
 
 list
 
@@ -2010,11 +2026,11 @@ browse
 
 gen id=_n
 
-keep id tumorsize familyhx smokinghx sex cancerstage school
+keep id tumorsize familyhx smokinghx sex cancerstage school // Keep certain variables
 
-order id tumorsize familyhx smokinghx sex cancerstage school
+order id tumorsize familyhx smokinghx sex cancerstage school // Place the variables in a certain order
 
-proportion familyhx smokinghx sex cancerstage school
+proportion familyhx smokinghx sex cancerstage school // Estimate proportions for these variables
 
 * note the following error 'varlist:  familyhx:  string variable not allowed '*
 
@@ -2085,7 +2101,7 @@ household panel surveys (e.g. the British Household Panel Survey)
 
 ********************************************************************************
 *
-*                    Call a.do File 
+*                    Call a .do File 
 *
 ********************************************************************************
 
