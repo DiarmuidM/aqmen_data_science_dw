@@ -28,6 +28,8 @@
 
 ** INSERT SYNTAX **
 
+global path2 "C:\Users\mcdonndz-local\Desktop\github\aqmen_data_science_dw\data\exercise_two"
+
 di "$path1"
 di "$path2"
 di "$path3"
@@ -42,7 +44,7 @@ di "$path8"
 
 /* Base dataset - extract_charity */
 
-import delimited using $path2\extract_charity.csv, varnames(1) clear
+import delimited using $path2\extract_charity_sample.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -62,7 +64,7 @@ label data "One observation per registered/removed charity (including subsidiari
 	duplicates list regno // Looks like a combination of data entry errors (strings again) and duplicate numbers. Delete strings first.
 	
 		list regno if missing(real(regno))
-		replace regno = "" if missing(real(regno)) // Set nonnumeric instances of regno as missing
+		replace regno = "" if missing(real(regno)) // Set non-numeric instances of regno as missing
 		destring regno, replace
 		drop if regno==. // Drop instances where regno is missing.
 		
@@ -81,19 +83,11 @@ label data "One observation per registered/removed charity (including subsidiari
 			/*
 				Ok, it looks as if the remaining instances of duplicate regno is accounted for by each subsidiary of a charity having its parent
 				charity's regno.
-				
-				Create a variable that counts the number of subsidiaries per charity, and drop observations where subno > 0.
 			*/
 			
 			destring subno, replace
-			bysort regno: egen subsidiaries = max(subno)
-			list regno subno subsidiaries in 1/1000
-			
-			keep if subno==0
+			keep if subno==0 // Drop records relating to charity subsidiaries
 			drop dupregno
-			/*
-				Think about keeping subsidiaries later on, as we can track their registration and removal dates.
-			*/
 
 	
 	codebook orgtype
@@ -106,7 +100,6 @@ label data "One observation per registered/removed charity (including subsidiari
 	tab charitystatus
 	drop orgtype
 		
-	
 sav $path1\ew_charityregister_v1.dta, replace	
 
 	
@@ -128,12 +121,13 @@ label data "One observation for every main registered charity (no subsidiaries)"
 	
 	duplicates report regno
 	duplicates list regno
-	
+		
+	/* Explore values of each variable */
 	
 	codebook incomedate // Date latest income figure refers to - currently a string.
 	rename incomedate str_incomedate
 	replace str_incomedate = substr(str_incomedate, 1, 10) // Capture first 10 characters of string.
-	replace str_incomedate = subinstr(str_incomedate, "-", "", .) // Remove 
+	replace str_incomedate = subinstr(str_incomedate, "-", "", .) // Replace hyphens with a blank space.
 	tab str_incomedate, sort
 	
 	gen incomedate = date(str_incomedate, "YMD")
@@ -152,7 +146,6 @@ label data "One observation for every main registered charity (no subsidiaries)"
 		// Create categorical measures of income
 		
 		capture drop inc_cat
-		gen inc_cat = income
 		egen inc_cat = cut(income), group(5)
 		tab inc_cat
 		
@@ -162,7 +155,6 @@ label data "One observation for every main registered charity (no subsidiaries)"
 		label define alt_inc_cat_lab 1 "Small" 2 "Medium" 3 "Large"
 		label values alt_inc_cat alt_inc_cat_lab
 		tab alt_inc_cat
-	
 	
 	sort regno // Sort the dataset by unique id
 	
@@ -176,6 +168,7 @@ count
 desc, f
 notes
 codebook *, compact
+label data "One observation per main charity"
 
 	/* Missing or duplicate values */
 	
@@ -189,28 +182,7 @@ codebook *, compact
 	
 	duplicates report regno
 	duplicates list regno
-	duplicates tag regno, gen(dupregno)
-		
-		list regno subno if regno==1175809
-		list regno subno if regno==1176305
-		list regno subno if dupregno!=0
-		codebook subno
-		codebook subno if dupregno!=0
-		/*
-			Ok, it looks as if the remaining instances of duplicate regno is accounted for by each subsidiary of a charity having its parent
-			charity's regno.
-			
-			Create a variable that counts the number of subsidiaries per charity, and drop observations where subno > 0.
-		*/
-			
-		bysort regno: egen subsidiaries = max(subno)
-		list regno subno subsidiaries in 1/1000
-			
-		keep if subno==0
-		drop dupregno
-		/*
-			Think about keeping subsidiaries later on, as we can track their registration and removal dates.
-		*/
+	keep if subno==0
 	
 	notes: use regno for linking with other datasets containing charity numbers
 
@@ -222,11 +194,11 @@ codebook *, compact
 		replace str_`var' = substr(str_`var', 1, 10) // Capture first 10 characters of string.
 		replace str_`var' = subinstr(str_`var', "-", "", .) // Remove hyphen from date information.
 		
-		gen `var' = date(str_`var', "YMD")
-		format `var' %td
+		gen `var' = date(str_`var', "YMD") // Create a date variable in YYYYMMDD format.
+		format `var' %td // Format date variable.
 		codebook `var'
 		
-		gen `var'yr = year(`var')
+		gen `var'yr = year(`var') // Create a year variable from date variable.
 		drop str_`var'
 	}
 	
@@ -240,6 +212,10 @@ codebook *, compact
 	tab remcode // Need to merge with extract_remove_ref to understand the codes.
 	
 	sort remcode
+	
+	label variable regy "Year charity was registered"
+	label variable remy "Year charity was de-registered"
+
 	
 sav $path1\ew_rem_v1.dta, replace
 
@@ -375,7 +351,7 @@ sav $path1\ew_trustees_may1018.dta, replace
 	
 	/* Create dependent variables */
 	
-	// Removed
+	// De-registered
 	
 	capture drop dereg
 	gen dereg = charitystatus
@@ -384,10 +360,7 @@ sav $path1\ew_trustees_may1018.dta, replace
 	label variable dereg "Organisation no longer registered as a charity"
 	
 	// Multinomial measure of removed reason
-	/*
-		Voluntary dissolution is not comparable (yet) between the three jurisidictions:
-		- Canada includes mergers and amalgamations, the others do not.
-	*/
+
 	
 	capture drop depvar
 	gen depvar = .
@@ -401,7 +374,21 @@ sav $path1\ew_trustees_may1018.dta, replace
 	label values depvar rem_label
 	label variable depvar "Indicates whether a charity has been de-registered and for what reason"
 
-
 compress
 		
-sav $path4\ew_charityregister_20180522.dta, replace
+sav $path3\ew_charityregister_20180522.dta, replace
+
+***************************************************************************************************
+
+***************************************************************************************************
+
+/* Data Analysis */
+
+use $path3\ew_charityregister_20180522.dta, clear
+count
+desc, f
+codebook, compact
+notes
+
+	
+

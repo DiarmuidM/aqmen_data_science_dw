@@ -256,7 +256,7 @@ structure and consider how you could make it more CONSISTENT and how it might be
 improved to assist your workflow.
 
 
-In an example below we will organise your memory stick into a simple but 
+In an example below we will organise your network drive/memory stick into a simple but 
 effective directory sturture...
 
 working
@@ -320,19 +320,19 @@ pwd
 
 * change the working directory *
 
-cd /* select location where you want to store your project files */
+cd // select location where you want to store your project files
 
 pwd
 
 * make a new directory *
 
-mkdir "e:\new_directory"
+mkdir "H:\new_directory"
 
 * take a look on the drive to check that the directory has been created *
 
 * now remove this directory *
 
-rmdir "e:\new_directory"
+rmdir "H:\new_directory"
 
 
 /** 
@@ -342,22 +342,22 @@ structure...
 
 **/
 
-mkdir "e:\working"
-mkdir "e:\data_raw"
-mkdir "e:\data_clean"
-mkdir "e:\codebooks"
-mkdir "e:\logs"
-mkdir "e:\do_files"
-mkdir "e:\documents"
-mkdir "e:\figures"
-mkdir "e:\tables"
-mkdir "e:\trash"
-mkdir "e:\temp"
+mkdir "H:\working"
+mkdir "H:\data_raw"
+mkdir "H:\data_clean"
+mkdir "H:\codebooks"
+mkdir "H:\logs"
+mkdir "H:\do_files"
+mkdir "H:\documents"
+mkdir "H:\figures"
+mkdir "H:\tables"
+mkdir "H:\trash"
+mkdir "H:\temp"
 
 
 /**
 
-Task: Write a paragraph to justifying the directory structure that you have 
+Task: Write a few lines justifying the directory structure that you have 
 chosen.
 
 **/
@@ -384,7 +384,7 @@ It tells Stata where to look for files on your machine or network.
 
 * make sure you run all of the following commands *
 
-global path1 "e:\working\" 
+global path1 "H:\working\" 
 
 /** 
 
@@ -394,27 +394,27 @@ where you can save newly created data files and output
 **/
 
 
-global path2 "e:\do_files\" 
+global path2 "H:\do_files\" 
 
 * the location where your .do files will be saved *
 
-global path3 "e:\data_raw\"
+global path3 "H:\data_raw\"
 
 * the location where your raw (i.e. unprocessed) data is stored *
 
-global path4 "e:\data_clean\"
+global path4 "H:\data_clean\"
 
 * the location where your clean (i.e. processed) data is saved *
 
-global path5 "e:\logs\"
+global path5 "H:\logs\"
 
 * the location where your log files are saved *
 
-global path6 "e:\codebooks\"
+global path6 "H:\codebooks\"
 
 * the location where your codebooks are saved *
 
-global path7 "e:\temp\"
+global path7 "H:\temp\"
 
 * the location of a temporary folder where you can save intermediate files *
 
@@ -423,7 +423,7 @@ global path7 "e:\temp\"
 often it is easier to define all of the path macros in a separate file, known as an "include" file: file_paths.doi.
 then we can call this file from our do file as follows:
 
-include "e:\file_paths.doi"
+include "H:\file_paths.doi"
 display $path1
 
 very useful technique when there are multiple people working on the same data.
@@ -450,7 +450,7 @@ clear
 
 /**
 
-Because you have already set path3 as "e:\data_raw\" you can use this macro 
+Because you have already set path3 as "H:\data_raw\" you can use this macro 
 
 to get the data file from the data_raw directory
 
@@ -535,7 +535,7 @@ capture log close
 /** 
 
 take a look at the compact codebook that has been created as a txt file in
-path6 "e:\codebooks\"
+path6 "H:\codebooks\"
 
 QUESTION: what is the "codebook" command doing?
 
