@@ -10,14 +10,16 @@
 	- links these datasets together to form a comprehensive Register of Charities
 	- saves these datasets in Stata and CSV formats
    
-	The Register of Charities (extract_main) is the base dataset that the rest are merged with.
+	The Register of Charities (extract_charity_sample) is the base dataset that the rest are merged with.
    
    Datasets:
-		- extract_charity
+		- extract_charity_sample
 		- extract_main_charity
 		- extract_trustees
 		- extract_registration
 		- extract_remove_ref
+		
+	You should consult the data dictionary throughout this exercise: include "H:\file_paths.doi"
    
 */
 
@@ -28,8 +30,7 @@
 
 ** INSERT SYNTAX **
 
-global path2 "C:\Users\mcdonndz-local\Desktop\github\aqmen_data_science_dw\data\exercise_two"
-
+include "H:\file_paths.doi"
 di "$path1"
 di "$path2"
 di "$path3"
@@ -237,7 +238,7 @@ codebook *, compact
 	
 	sort remcode
 	
-sav $path1\ew_rem_ref_may2018.dta, replace
+sav $path1\ew_rem_ref_v1.dta, replace
 
 
 /* extract_trustee dataset */
@@ -265,7 +266,7 @@ codebook *, compact
 	
 	codebook trustee
 	list trustee in 1/1000 // We don't need the names, just a count of trustees per charity.
-	bysort regno: egen trustees = count(trustee)
+	bysort regno: egen trustees = count(trustee) // For each charity, count the number of trustees
 	sum trustees
 	
 	drop trustee
@@ -275,14 +276,14 @@ codebook *, compact
 	duplicates report regno
 	duplicates drop regno, force
 
-sav $path1\ew_trustees_may1018.dta, replace
+sav $path1\ew_trustees_v1.dta, replace
 
 	
 	// Merge deregistration datasets
 	
 	use $path1\ew_rem_v1.dta, clear
 	
-	merge m:1 remcode using $path1\ew_rem_ref.dta, keep(match master using)
+	merge m:1 remcode using $path1\ew_rem_ref_v1.dta, keep(match master using)
 	tab _merge
 	drop _merge
 	
@@ -291,7 +292,7 @@ sav $path1\ew_trustees_may1018.dta, replace
 	tab removed_reason
 	rename removed_reason oldvar
 	
-	encode oldvar, gen(removed_reason)
+	encode oldvar, gen(removed_reason) // Create a number version of 'removed_reason'.
 	tab removed_reason
 	tab removed_reason, nolab
 	drop oldvar
@@ -307,7 +308,7 @@ sav $path1\ew_trustees_may1018.dta, replace
 		seems to be because one observation has a registration and removal year, while the other just has a registration date.
 		
 		Look for one of these charities online. There could be duplicates due to charities changing legal form, which I think causes a new
-		charity number of be issued on the Public Register but not in this dataset.
+		charity number to be issued on the Public Register but not in this dataset.
 	*/
 	
 	drop if dupregno!=0 & remy!=.
@@ -327,13 +328,13 @@ sav $path1\ew_trustees_may1018.dta, replace
 	
 	// Merge the supplementary datasets with the charity register
 	
-	use $path1\ew_charityregister_may2018_v1.dta, clear
+	use $path1\ew_charityregister_v1.dta, clear
 	
-	merge 1:1 regno using $path1\ew_rem_may2018.dta, keep(match master using) // Registration information
+	merge 1:1 regno using $path1\ew_rem_v1.dta, keep(match master using) // Registration information
 	tab _merge
 	rename _merge rem_merge
 	
-	merge 1:1 regno using $path1\ew_trustees_may1018.dta, keep(match master using) // Trustees information
+	merge 1:1 regno using $path1\ew_trustees_v1.dta, keep(match master using) // Trustees information
 	tab _merge
 	rename _merge trustee_merge
 	drop if trustee_merge==2
@@ -341,11 +342,12 @@ sav $path1\ew_trustees_may1018.dta, replace
 	
 /* Final data management */
 
-	/* Charity age */
+	/* Charity age variable */
 	
 	capture drop charityage
 	gen charityage = year - regy if charitystatus==1
 	replace charityage = remy - regy if charitystatus==2
+	
 	list regno regy remy year charityage in 1/500
 	list regno regy remy year charityage if charitystatus==1 & year!=.
 	
@@ -361,7 +363,6 @@ sav $path1\ew_trustees_may1018.dta, replace
 	
 	// Multinomial measure of removed reason
 
-	
 	capture drop depvar
 	gen depvar = .
 	replace depvar = 0 if charitystatus==1
@@ -376,7 +377,7 @@ sav $path1\ew_trustees_may1018.dta, replace
 
 compress
 		
-sav $path3\ew_charityregister_20180522.dta, replace
+sav $path3\ew_charityregister_analysis.dta, replace
 
 ***************************************************************************************************
 
@@ -384,11 +385,48 @@ sav $path3\ew_charityregister_20180522.dta, replace
 
 /* Data Analysis */
 
-use $path3\ew_charityregister_20180522.dta, clear
+use $path3\ew_charityregister_analysis.dta, clear
 count
 desc, f
 codebook, compact
 notes
+
+		// Descriptive statistics
+	
+	tab1 charitysize aootype
+	tab depvar
+	tab remy depvar if remy>=2007 // Produce a table
+	/*
+		What's going in 2009 with Other Dereg?
+	*/	
+	
+		tab removed_reason if remy==2007
+		tab removed_reason if remy==2008
+		tab removed_reason if remy==2009 // Accounted for by the large spike in voluntary de-registrations
+	
+	local fdate = "24jul2018" // Create a macro to capture today's date (useful for naming files)
+
+	graph bar , over(depvar) over(charitysize) stack asyvar percent ylabel(, nogrid labsize(small))
+	graph bar , over(depvar) over(aootype) stack asyvar percent ylabel(, nogrid labsize(small))
+	
+	tab remy depvar if remy>=2007
+	local numobs:di %6.0fc r(N)
+	
+	tab depvar if depvar>0 & remy>=2007 // 50% is the average number of vol removals in a given year.
+		
+	graph bar if remy>=2007 & depvar!=0, over(depvar) over(remy) stack asyvar percent ///
+		bar(1, color(dknavy )) bar(2, color(erose)) ///
+		ylabel(, nogrid labsize(small)) ///
+		ytitle("% of charities", size(medsmall)) ///
+		yline(50, lpatt(dash) lcolor(gs8)) ///
+		title("Charity Removal Reasons - UK")  ///
+		subtitle("by deregistration year")  ///
+		note("Source: Charity Commission for England & Wales (22/05/2018);  n=`numobs'. Produced: $S_DATE.", size(vsmall) span) ///
+		scheme(s1color)
+
+	graph export $path6\ew_removedreason_`fdate'.png, replace width(4096)
+
+
 
 	
 
