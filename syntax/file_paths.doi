@@ -8,5 +8,6 @@ global path4 "H:\data_clean\"
 global path5 "H:\logs\"
 global path6 "H:\codebooks\"
 global path7 "H:\temp\"
+global path8 "H:\figures\"
 
 pwd
